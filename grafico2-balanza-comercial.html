@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balanza Comercial Argentina–Colombia 2016–2025</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --amarillo: #E6B800;
+    --amarillo-bg: #FFF8D6;
+    --azul:     #003893;
+    --azul-bg:  #EBF0FB;
+    --rojo:     #CE1126;
+    --rojo-bg:  #FDECED;
+    --fondo:    #ffffff;
+    --panel:    #F7F8FA;
+    --borde:    #E2E6ED;
+    --texto:    #111827;
+    --muted:    #6B7280;
+    --radius:   6px;
+    --font:     'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--fondo); color: var(--texto); font-family: var(--font); padding: 24px; }
+
+  .bandera { display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin-bottom: 20px; }
+  .bandera div:nth-child(1) { flex: 2; background: #FCD116; }
+  .bandera div:nth-child(2) { flex: 1; background: var(--azul); }
+  .bandera div:nth-child(3) { flex: 1; background: var(--rojo); }
+
+  .header { border-left: 3px solid var(--rojo); padding-left: 14px; margin-bottom: 20px; }
+  .header h1 { font-size: 17px; font-weight: 700; color: var(--texto); }
+  .header p  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .metric { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radius); padding: 12px 14px; }
+  .metric.m-amarillo { background: var(--amarillo-bg); border-color: #F0D050; }
+  .metric.m-rojo     { background: var(--rojo-bg);    border-color: #F0B8BC; }
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .metric-value { font-size: 20px; font-weight: 700; }
+  .metric-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .vtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .vtab {
+    padding: 5px 14px; border: 1px solid var(--borde); border-radius: 20px;
+    font-size: 12px; cursor: pointer; background: var(--fondo); color: var(--muted);
+    transition: all .15s; font-family: var(--font);
+  }
+  .vtab:hover  { border-color: var(--azul); color: var(--azul); }
+  .vtab.active { background: var(--azul); color: #fff; border-color: var(--azul); font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 12px; font-size: 12px; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .ls { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .chart-wrap {
+    position: relative; background: var(--fondo); border: 1px solid var(--borde);
+    border-radius: var(--radius); padding: 16px 16px 10px; height: 300px;
+  }
+  canvas { width: 100% !important; height: 100% !important; }
+
+  .tt {
+    position: absolute; background: #fff; border: 1px solid var(--borde);
+    border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
+    pointer-events: none; display: none; z-index: 20; min-width: 210px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.10);
+  }
+  .tt-date { font-weight: 700; margin-bottom: 7px; font-size: 13px; color: var(--texto); }
+  .tt-row   { display: flex; justify-content: space-between; gap: 12px; margin: 3px 0; color: var(--muted); }
+  .tt-val   { font-weight: 600; color: var(--texto); }
+
+  .note { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.6;
+          border-top: 1px solid var(--borde); padding-top: 10px; }
+
+  .prod-section { margin-top: 28px; }
+  .prod-year-badge {
+    display: inline-block; font-size: 10px; background: var(--panel);
+    border: 1px solid var(--borde); border-radius: 3px; padding: 1px 6px;
+    margin-left: 6px; color: var(--muted); vertical-align: middle;
+  }
+  .prod-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .prod-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .bar-row    { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .bar-label  { font-size: 11px; color: var(--muted); width: 155px; flex-shrink: 0;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track  { flex: 1; background: var(--borde); border-radius: 3px; height: 8px; }
+  .bar-fill   { height: 8px; border-radius: 3px; }
+  .bar-val    { font-size: 11px; color: var(--texto); width: 54px; text-align: right; flex-shrink: 0; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="bandera"><div></div><div></div><div></div></div>
+
+<div class="header">
+  <h1>Balanza comercial bilateral · Argentina ↔ Colombia</h1>
+  <p>Perspectiva de Colombia · Millones de dólares FOB · 2016–2025</p>
+</div>
+
+<div class="metrics" id="metrics"></div>
+
+<div class="vtabs" id="vtabs">
+  <button class="vtab active" data-v="saldo">Saldo comercial</button>
+  <button class="vtab" data-v="flujos">Exportaciones e importaciones</button>
+</div>
+
+<div class="legend" id="leg"></div>
+
+<div class="chart-wrap">
+  <canvas id="chart"></canvas>
+  <div class="tt" id="tt"><div class="tt-date" id="tt-date"></div><div id="tt-body"></div></div>
+</div>
+<p class="note" id="note"></p>
+
+<div class="prod-section">
+  <div class="prod-grid" id="prods"></div>
+  <p class="note" style="margin-top:10px">
+    Desagregado más reciente disponible: 2024 (COMTRADE/OEC). El dato bilateral desagregado por producto para 2025 no ha sido publicado por UN COMTRADE al cierre de esta edición.
+  </p>
+</div>
+
+<script>
+const yrs = ['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025'];
+const exp  = [262,310,345,298,204,297,430,357,300,312];
+const imp  = [617,735,820,778,519,769,1110,972,943,1180];
+const sal  = exp.map((x,i)=>x-imp[i]);
+
+const CA='#E6B800', CI='#CE1126', CAZ='#003893';
+let ch; let cv='saldo';
+
+function buildMetrics(){
+  const li=yrs.length-1;
+  document.getElementById('metrics').innerHTML=[
+    { l:'Expo. Col→ARG (2025)', v:'USD '+exp[li]+'M', s:'Fuente: DANE/DIAN preliminar', c:CA, cls:'m-amarillo' },
+    { l:'Impo. Col←ARG (2025)', v:'USD '+imp[li].toLocaleString()+'M', s:'Fuente: DANE/Analdex estimado', c:CI, cls:'m-rojo' },
+    { l:'Saldo bilateral (2025)', v:'−USD '+Math.abs(sal[li])+'M', s:'Déficit estructural para Colombia', c:CI, cls:'m-rojo' }
+  ].map(m=>`<div class="metric ${m.cls}">
+    <div class="metric-label">${m.l}</div>
+    <div class="metric-value" style="color:${m.c}">${m.v}</div>
+    <div class="metric-sub">${m.s}</div>
+  </div>`).join('');
+}
+
+function buildLeg(v){
+  document.getElementById('leg').innerHTML = v==='flujos'
+    ?`<span class="legend-item"><span class="ls" style="background:${CA}"></span>Exportaciones Col→ARG</span>
+      <span class="legend-item"><span class="ls" style="background:${CI}"></span>Importaciones Col←ARG</span>`
+    :`<span class="legend-item"><span class="ls" style="background:${CI}"></span>Saldo (negativo = déficit para Colombia)</span>`;
+}
+
+function drawChart(v){
+  if(ch) ch.destroy();
+  const ctx=document.getElementById('chart').getContext('2d');
+  let ds;
+  if(v==='flujos'){
+    ds=[
+      { label:'Exportaciones', data:exp, backgroundColor:CA+'99', borderColor:CA, borderWidth:1, borderRadius:3 },
+      { label:'Importaciones', data:imp, backgroundColor:CI+'99', borderColor:CI, borderWidth:1, borderRadius:3 }
+    ];
+  } else {
+    ds=[{ label:'Saldo', data:sal,
+      backgroundColor: sal.map(x=>x>=0?CA+'99':CI+'99'),
+      borderColor:     sal.map(x=>x>=0?CA:CI),
+      borderWidth:1, borderRadius:3 }];
+  }
+  ch=new Chart(ctx,{
+    type:'bar',
+    data:{labels:yrs,datasets:ds},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{
+        x:{ ticks:{color:'#6B7280',font:{size:12}}, grid:{display:false} },
+        y:{ ticks:{color:'#6B7280',font:{size:11},callback:v=>'USD '+v+'M'},
+            grid:{color:'rgba(0,0,0,0.05)'},
+            title:{display:true,text:'Millones USD',color:'#6B7280',font:{size:10}} }
+      },
+      onHover:(evt,els)=>{
+        const box=document.getElementById('tt');
+        if(!els.length){box.style.display='none';return;}
+        const i=els[0].index;
+        document.getElementById('tt-date').textContent=yrs[i];
+        const sc=sal[i]>=0?CA:CI;
+        let html=v==='flujos'
+          ?`<div class="tt-row"><span style="color:${CA}">Exportaciones</span><span class="tt-val">USD ${exp[i]}M</span></div>
+             <div class="tt-row"><span style="color:${CI}">Importaciones</span><span class="tt-val">USD ${imp[i]}M</span></div>
+             <div class="tt-row"><span style="color:${sc}">Saldo</span><span class="tt-val">${sal[i]>=0?'+':''}USD ${sal[i]}M</span></div>`
+          :`<div class="tt-row"><span style="color:${sc}">Saldo</span><span class="tt-val">${sal[i]>=0?'+':''}USD ${sal[i]}M</span></div>`;
+        document.getElementById('tt-body').innerHTML=html;
+        const wr=box.parentElement.getBoundingClientRect();
+        box.style.left=Math.min(evt.native.clientX-wr.left+14,wr.width-230)+'px';
+        box.style.top=Math.max(evt.native.clientY-wr.top-90,4)+'px';
+        box.style.display='block';
+      }
+    }
+  });
+  const notes={
+    saldo:'Saldo desde la perspectiva de Colombia: negativo = Colombia importó más desde Argentina. 2025: estimación preliminar basada en DANE/Analdex (importaciones de vehículos +37,1%). Fuentes: UN COMTRADE, Trading Economics, Analdex, INDEC.',
+    flujos:'2016–2024: datos certificados UN COMTRADE. 2025: estimación preliminar DANE/Analdex. Exportaciones colombianas hacia Argentina e importaciones desde Argentina, en millones de dólares FOB.'
+  };
+  document.getElementById('note').textContent=notes[v];
+}
+
+function buildProds(){
+  const ep=[
+    {n:'Combustibles y minerales',v:89.0},{n:'Vehículos',v:58.8},{n:'Plásticos',v:29.7},
+    {n:'Productos químicos',v:20.8},{n:'Maquinaria y calderas',v:14.6},
+    {n:'Café, té y especias',v:11.8},{n:'Grasas y aceites',v:9.3},{n:'Papel y cartón',v:8.0}
+  ];
+  const ip=[
+    {n:'Vehículos',v:372.7},{n:'Cereales',v:165.4},{n:'Farmacéuticos',v:77.1},
+    {n:'Grasas y aceites',v:45.4},{n:'Residuos alimentarios',v:43.2},
+    {n:'Maquinaria y calderas',v:29.1},{n:'Artículos de acero',v:21.2},{n:'Vegetales',v:20.9}
+  ];
+  const mE=Math.max(...ep.map(x=>x.v)), mI=Math.max(...ip.map(x=>x.v));
+  const rows=(arr,col,max)=>arr.map(p=>`
+    <div class="bar-row">
+      <span class="bar-label" title="${p.n}">${p.n}</span>
+      <div class="bar-track"><div class="bar-fill" style="background:${col};width:${(p.v/max*100).toFixed(1)}%"></div></div>
+      <span class="bar-val">USD ${p.v}M</span>
+    </div>`).join('');
+  document.getElementById('prods').innerHTML=`
+    <div>
+      <div class="prod-title" style="color:${CA}">Exportaciones Col→ARG <span class="prod-year-badge">2024</span></div>
+      ${rows(ep,CA,mE)}
+    </div>
+    <div>
+      <div class="prod-title" style="color:${CI}">Importaciones Col←ARG <span class="prod-year-badge">2024</span></div>
+      ${rows(ip,CI,mI)}
+    </div>`;
+}
+
+document.getElementById('vtabs').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-v]');
+  if(!btn) return;
+  document.querySelectorAll('.vtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  cv=btn.dataset.v;
+  buildLeg(cv); drawChart(cv);
+});
+
+buildMetrics(); buildLeg('saldo'); drawChart('saldo'); buildProds();
+</script>
+</body>
+</html>

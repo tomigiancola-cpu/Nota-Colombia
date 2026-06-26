@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicadores Macroeconómicos Colombia 2016–2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --amarillo: #E6B800;
+    --amarillo-bg: #FFF8D6;
+    --azul:     #003893;
+    --azul-bg:  #EBF0FB;
+    --rojo:     #CE1126;
+    --rojo-bg:  #FDECED;
+    --fondo:    #ffffff;
+    --panel:    #F7F8FA;
+    --borde:    #E2E6ED;
+    --texto:    #111827;
+    --muted:    #6B7280;
+    --radius:   6px;
+    --font:     'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--fondo); color: var(--texto); font-family: var(--font); padding: 24px; }
+
+  .bandera { display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin-bottom: 20px; }
+  .bandera div:nth-child(1) { flex: 2; background: #FCD116; }
+  .bandera div:nth-child(2) { flex: 1; background: var(--azul); }
+  .bandera div:nth-child(3) { flex: 1; background: var(--rojo); }
+
+  .header { border-left: 3px solid var(--azul); padding-left: 14px; margin-bottom: 20px; }
+  .header h1 { font-size: 17px; font-weight: 700; color: var(--texto); }
+  .header p  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .metric { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radius); padding: 12px 14px; }
+  .metric.m-amarillo { background: var(--amarillo-bg); border-color: #F0D050; }
+  .metric.m-azul     { background: var(--azul-bg);    border-color: #B8C8EE; }
+  .metric.m-rojo     { background: var(--rojo-bg);    border-color: #F0B8BC; }
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .metric-value { font-size: 20px; font-weight: 700; }
+  .metric-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .badge {
+    display: inline-block; font-size: 9px; background: var(--borde);
+    border-radius: 3px; padding: 1px 5px; margin-left: 5px;
+    color: var(--muted); vertical-align: middle; font-weight: 400;
+  }
+
+  .vtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .vtab {
+    padding: 5px 14px; border: 1px solid var(--borde); border-radius: 20px;
+    font-size: 12px; cursor: pointer; background: var(--fondo); color: var(--muted);
+    transition: all .15s; font-family: var(--font);
+  }
+  .vtab:hover  { border-color: var(--azul); color: var(--azul); }
+  .vtab.active { background: var(--azul); color: #fff; border-color: var(--azul); font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 12px; font-size: 12px; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .leg-line { width: 24px; height: 3px; border-radius: 2px; }
+
+  .chart-wrap {
+    position: relative; background: var(--fondo); border: 1px solid var(--borde);
+    border-radius: var(--radius); padding: 16px 16px 10px; height: 340px;
+  }
+  canvas { width: 100% !important; height: 100% !important; }
+
+  .tt {
+    position: absolute; background: #fff; border: 1px solid var(--borde);
+    border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
+    pointer-events: none; display: none; z-index: 20; min-width: 220px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.10);
+  }
+  .tt-date { font-weight: 700; margin-bottom: 7px; font-size: 13px; color: var(--texto); }
+  .tt-row   { display: flex; justify-content: space-between; gap: 12px; margin: 3px 0; color: var(--muted); }
+  .tt-val   { font-weight: 600; color: var(--texto); }
+
+  .note { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.6;
+          border-top: 1px solid var(--borde); padding-top: 10px; }
+
+
+</style>
+</head>
+<body>
+
+<div class="bandera"><div></div><div></div><div></div></div>
+
+<div class="header">
+  <h1>Indicadores macroeconómicos · Colombia</h1>
+  <p>PIB · Inflación (IPC) · Riesgo país (EMBI) · 2016–2026</p>
+</div>
+
+<div class="metrics" id="metrics"></div>
+
+<div class="vtabs" id="vtabs">
+  <button class="vtab active" data-v="all">Los tres indicadores</button>
+  <button class="vtab" data-v="pib">Solo PIB</button>
+  <button class="vtab" data-v="inf">Solo inflación</button>
+  <button class="vtab" data-v="embi">Solo riesgo país</button>
+</div>
+
+<div class="legend" id="leg"></div>
+
+<div class="chart-wrap">
+  <canvas id="chart"></canvas>
+  <div class="tt" id="tt"><div class="tt-date" id="tt-date"></div><div id="tt-body"></div></div>
+</div>
+<p class="note" id="note"></p>
+
+
+
+<script>
+const YRS_ANUAL = ['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025'];
+const PIB_DATA  = [2.1, 1.4, 2.6, 3.3, -7.2, 10.8, 7.3, 0.7, 1.6, 2.6];
+const INF_DATA  = [5.75, 4.09, 3.18, 3.80, 1.61, 5.62, 13.12, 9.28, 5.20, 5.10];
+
+// 2026: datos exactos publicados
+const YRS_PIB   = [...YRS_ANUAL, 'Q1-2026'];
+const PIB_FULL  = [...PIB_DATA, 2.2];   // DANE 15-may-2026
+
+const YRS_INF   = [...YRS_ANUAL, 'may-2026'];
+const INF_FULL  = [...INF_DATA, 5.84]; // DANE 5-jun-2026
+
+// EMBI 2026: único dato exacto publicado = 219 pb al 30-abr-2026 (Min. Hacienda)
+const YRS_EMBI  = [...YRS_ANUAL, 'abr-2026'];
+const EMBI_DATA = [230, 175, 185, 155, 265, 185, 310, 390, 450, 340, 219];
+
+const C = { pib:'#E6B800', inf:'#CE1126', embi:'#003893' };
+let ch; let cv='all';
+
+function buildMetrics(){
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric m-amarillo">
+      <div class="metric-label">PIB <span class="badge">Q1 2026 · DANE</span></div>
+      <div class="metric-value" style="color:${C.pib}">${PIB_FULL[PIB_FULL.length-1].toFixed(1)}% a/a</div>
+      <div class="metric-sub">vs Q1 2025 · Serie original DANE</div>
+    </div>
+    <div class="metric m-rojo">
+      <div class="metric-label">Inflación IPC <span class="badge">may-2026 · DANE</span></div>
+      <div class="metric-value" style="color:${C.inf}">${INF_FULL[INF_FULL.length-1].toFixed(2)}% a/a</div>
+      <div class="metric-sub">Meta Banrep: 3,0%</div>
+    </div>
+    <div class="metric m-azul">
+      <div class="metric-label">EMBI <span class="badge">30 abr 2026 · Min. Hacienda</span></div>
+      <div class="metric-value" style="color:${C.embi}">${EMBI_DATA[EMBI_DATA.length-1]} pb</div>
+      <div class="metric-sub">Mínimo desde abr-2021</div>
+    </div>`;
+}
+
+function buildLeg(v){
+  const items={
+    pib:  `<span class="legend-item"><span class="leg-line" style="background:${C.pib}"></span>PIB real (% a/a) · eje izq.</span>`,
+    inf:  `<span class="legend-item"><span class="leg-line" style="background:${C.inf}"></span>Inflación IPC (%) · eje izq.</span>
+           <span class="legend-item"><span class="leg-line" style="background:${C.inf};opacity:.35"></span>Meta Banrep 3%</span>`,
+    embi: `<span class="legend-item"><span class="leg-line" style="background:${C.embi}"></span>EMBI Colombia (pb) · eje der.</span>`
+  };
+  document.getElementById('leg').innerHTML = v==='all'
+    ? items.pib+items.inf+items.embi
+    : (items[v]||'');
+}
+
+function drawChart(v){
+  if(ch) ch.destroy();
+  const ctx=document.getElementById('chart').getContext('2d');
+  const dual=v==='all'||v==='embi';
+  const ds=[];
+  const labelsAll=[...YRS_ANUAL,'2026*'];
+
+  if(v==='all'||v==='pib'){
+    const pdata=v==='all'?[...PIB_DATA,2.2]:PIB_FULL;
+    ds.push({label:'PIB real (%)',data:pdata,borderColor:C.pib,backgroundColor:C.pib+'22',
+      fill:v==='pib',tension:.35,borderWidth:2.5,pointRadius:4,yAxisID:'y1'});
+  }
+  if(v==='all'||v==='inf'){
+    const idata=v==='all'?[...INF_DATA,5.84]:INF_FULL;
+    ds.push({label:'Inflación IPC (%)',data:idata,borderColor:C.inf,backgroundColor:C.inf+'22',
+      fill:v==='inf',tension:.35,borderWidth:2.5,pointRadius:4,yAxisID:'y1'});
+    const meta=(v==='all'?labelsAll:YRS_INF).map(()=>3);
+    ds.push({label:'Meta 3%',data:meta,borderColor:C.inf,borderDash:[4,4],borderWidth:1.5,
+      fill:false,pointRadius:0,yAxisID:'y1',tension:0});
+  }
+  if(v==='all'||v==='embi'){
+    const edata=v==='all'?[...EMBI_DATA.slice(0,-1),219]:EMBI_DATA;
+    ds.push({label:'EMBI (pb)',data:edata,borderColor:C.embi,backgroundColor:C.embi+'22',
+      fill:v==='embi',tension:.35,borderWidth:2.5,pointRadius:4,
+      borderDash:v==='all'?[5,3]:[],yAxisID:dual?'y2':'y1'});
+  }
+
+  const finalLabels=v==='all'?labelsAll:(v==='pib'?YRS_PIB:v==='inf'?YRS_INF:YRS_EMBI);
+
+  const scales={
+    x:{ ticks:{color:'#6B7280',font:{size:11},autoSkip:false,maxRotation:30}, grid:{color:'rgba(0,0,0,0.05)'} },
+    y1:{ position:'left',
+         ticks:{color:'#6B7280',font:{size:11},callback:vv=>vv.toFixed(1)+'%'},
+         grid:{color:'rgba(0,0,0,0.05)'},
+         title:{display:true,text:'%',color:'#6B7280',font:{size:10}} }
+  };
+  if(dual) scales.y2={
+    position:'right',
+    ticks:{color:C.embi,font:{size:11},callback:vv=>vv+' pb'},
+    grid:{display:false},
+    title:{display:true,text:'Puntos básicos (EMBI)',color:C.embi,font:{size:10}}
+  };
+
+  ch=new Chart(ctx,{
+    type:'line',
+    data:{labels:finalLabels,datasets:ds},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales,
+      onHover:(evt,els)=>{
+        const box=document.getElementById('tt');
+        if(!els.length){box.style.display='none';return;}
+        const i=els[0].index;
+        document.getElementById('tt-date').textContent=finalLabels[i];
+        const pArr=v==='all'?[...PIB_DATA,2.2]:PIB_FULL;
+        const iArr=v==='all'?[...INF_DATA,5.84]:INF_FULL;
+        const eArr=v==='all'?[...EMBI_DATA.slice(0,-1),219]:EMBI_DATA;
+        let html='';
+        if(v==='all'||v==='pib')  html+=`<div class="tt-row"><span style="color:${C.pib}">PIB</span><span class="tt-val">${pArr[i]!=null?pArr[i].toFixed(1)+'%':'—'}</span></div>`;
+        if(v==='all'||v==='inf')  html+=`<div class="tt-row"><span style="color:${C.inf}">Inflación</span><span class="tt-val">${iArr[i]!=null?iArr[i].toFixed(2)+'%':'—'}</span></div>`;
+        if(v==='all'||v==='embi') html+=`<div class="tt-row"><span style="color:${C.embi}">EMBI</span><span class="tt-val">${eArr[i]!=null?eArr[i]+' pb':'—'}</span></div>`;
+        document.getElementById('tt-body').innerHTML=html;
+        const wr=box.parentElement.getBoundingClientRect();
+        box.style.left=Math.min(evt.native.clientX-wr.left+14,wr.width-240)+'px';
+        box.style.top=Math.max(evt.native.clientY-wr.top-90,4)+'px';
+        box.style.display='block';
+      }
+    }
+  });
+
+  const notes={
+    all:'PIB: variación anual real (DANE/Banco Mundial); 2026* = Q1 2026 +2,2% (DANE, 15-may-2026). Inflación: IPC anual dic. de cada año; 2026* = IPC a/a mayo 2026 +5,84% (DANE, 5-jun-2026). EMBI: promedio anual JP Morgan/Banrep; 2026* = 219 pb al 30-abr-2026 (Min. Hacienda). Línea punteada roja = meta de inflación 3% del Banrep.',
+    pib:'Variación anual del PIB real de Colombia (DANE/Banco Mundial). El dato de 2026* corresponde al Q1 publicado el 15 de mayo de 2026.',
+    inf:'IPC variación anual acumulada diciembre de cada año (DANE). 2026* = dato a mayo 2026, publicado el 5 de junio de 2026. Línea punteada = meta Banrep 3%.',
+    embi:'EMBI Colombia en puntos básicos (JP Morgan/Banrep). 2016–2025: promedios anuales. 2026* = 219 pb al 30 de abril de 2026 (Min. Hacienda, publicado 29-abr-2026), mínimo desde abril de 2021.'
+  };
+  document.getElementById('note').textContent=notes[v];
+}
+
+document.getElementById('vtabs').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-v]');
+  if(!btn)return;
+  document.querySelectorAll('.vtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  cv=btn.dataset.v;
+  buildLeg(cv); drawChart(cv);
+});
+
+buildMetrics(); buildLeg('all'); drawChart('all');
+</script>
+</body>
+</html>
